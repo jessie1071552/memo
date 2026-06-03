@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>二足歩行ロボット 設計レポート</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --bg: #0a0e17;
+    --surface: #111827;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --warn: #ffd166;
+    --text: #c9d6e3;
+    --text-dim: #5a7a9a;
+    --green: #06d6a0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+    line-height: 1.8;
+    min-height: 100vh;
+  }
+
+  /* グリッド背景 */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ヘッダー */
+  header {
+    border-left: 3px solid var(--accent);
+    padding-left: 20px;
+    margin-bottom: 48px;
+    animation: fadeIn 0.6s ease;
+  }
+
+  header .label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  header h1 {
+    font-size: clamp(22px, 4vw, 32px);
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.3;
+  }
+
+  header .meta {
+    margin-top: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  /* セクション */
+  section {
+    margin-bottom: 40px;
+    animation: fadeIn 0.6s ease;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .section-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.2);
+    padding: 3px 8px;
+    border-radius: 3px;
+  }
+
+  .section-header h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 1px;
+  }
+
+  /* カード */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  /* リスト */
+  ul.styled {
+    list-style: none;
+    padding: 0;
+  }
+
+  ul.styled li {
+    padding: 6px 0;
+    padding-left: 16px;
+    position: relative;
+    font-size: 14px;
+    color: var(--text);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  ul.styled li:last-child { border-bottom: none; }
+
+  ul.styled li::before {
+    content: '›';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* タグ */
+  .tag {
+    display: inline-block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin: 2px;
+  }
+
+  .tag-red { background: rgba(255,107,53,0.15); color: var(--accent2); border: 1px solid rgba(255,107,53,0.3); }
+  .tag-blue { background: rgba(0,212,255,0.1); color: var(--accent); border: 1px solid rgba(0,212,255,0.25); }
+  .tag-green { background: rgba(6,214,160,0.1); color: var(--green); border: 1px solid rgba(6,214,160,0.25); }
+  .tag-warn { background: rgba(255,209,102,0.1); color: var(--warn); border: 1px solid rgba(255,209,102,0.25); }
+
+  /* テーブル */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  th {
+    background: rgba(0,212,255,0.08);
+    color: var(--accent);
+    font-weight: 700;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: var(--text);
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  /* コードブロック */
+  .code-block {
+    background: #060a12;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 16px 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: #7ec8e3;
+    line-height: 2;
+    margin: 12px 0;
+    overflow-x: auto;
+  }
+
+  /* ステップ */
+  .steps {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+  }
+
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 14px;
+    align-items: flex-start;
+  }
+
+  .steps li:last-child { border-bottom: none; }
+
+  .steps li::before {
+    content: counter(step, decimal-leading-zero);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.2);
+    padding: 3px 8px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* 優先度バッジ */
+  .priority {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 2px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  .p-high { background: rgba(255,107,53,0.2); color: var(--accent2); }
+  .p-mid  { background: rgba(255,209,102,0.15); color: var(--warn); }
+  .p-low  { background: rgba(6,214,160,0.1); color: var(--green); }
+
+  /* 区切り線 */
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 32px 0;
+  }
+
+  /* フッター */
+  footer {
+    text-align: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    padding: 32px 0 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .highlight-box {
+    background: rgba(255,209,102,0.06);
+    border: 1px solid rgba(255,209,102,0.2);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-size: 13px;
+    color: var(--warn);
+    margin: 12px 0;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 600px) {
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="label">Design Report // Session 01</div>
+    <h1>二足歩行ロボット<br>設計レポート</h1>
+    <div class="meta">DATE: 2026.06.03 &nbsp;|&nbsp; STATUS: 設計フェーズ &nbsp;|&nbsp; SERVO: MG92B × 10</div>
+  </header>
+
+  <!-- 1. 現状の反省点 -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2>今回の反省点</h2>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">構造・組み立て</div>
+        <ul class="styled">
+          <li>サーボ支持部の強度不足、分解時に破損しやすかった</li>
+          <li>プッシュリベットに緩みが見られた</li>
+          <li>3Dプリント部品が汎用的すぎて組み立て時にズレが生じた</li>
+          <li>足全体を一体として設計すべきだった</li>
+          <li>その場しのぎの設計で後から修正が困難だった</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title">電装・配線</div>
+        <ul class="styled">
+          <li>配線がぐちゃぐちゃで接触不良が発生</li>
+          <li>ラズパイ・PCA9685・センサの搭載位置を考慮していなかった</li>
+          <li>コード管理がしにくい構造だった</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title">サーボ・制御</div>
+        <ul class="styled">
+          <li>MG92Bのトルク不足（特に足首）</li>
+          <li>180度制約が設計の自由度を制限</li>
+          <li>エンコーダなしでフィードバック制御が不可能</li>
+          <li>特異点が発生（トルク負けの可能性）</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title">コード</div>
+        <ul class="styled">
+          <li>Gemini製コードで自分が把握できていなかった</li>
+          <li>キーフレームが根拠のない値で埋まっていた</li>
+          <li>重心やZMPを計算せずに行き当たりばったりで設計</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- 2. 設計方針 -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2>次回設計の方針</h2>
+    </div>
+
+    <div class="card">
+      <div class="card-title">構造設計の原則</div>
+      <ul class="styled">
+        <li>ネジ固定前提の設計（プッシュリベット廃止）で完全分解可能にする</li>
+        <li>タミヤパーツを荷重部に使用、3Dプリントはジョイント役に徹する</li>
+        <li>3DプリントのCAD設計段階でタミヤの穴ピッチに合わせておく</li>
+        <li>足全体を1ユニットとして設計、関節パーツ単体での設計はしない</li>
+        <li>電装品の搭載位置を先に決めてからフレーム設計に入る</li>
+        <li>配線ルートも3Dモデルの段階で考慮する</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">設計の進め方（順序）</div>
+      <ol class="steps">
+        <li>目標サイズと重量を先に決定（トルクから逆算）</li>
+        <li>MG92Bで成立するかトルク計算で確認</li>
+        <li>成立する場合：小型化設計＋ポテンショメータ改造へ進む</li>
+        <li>成立しない場合：サーボ再選定（Feetech等）</li>
+        <li>CAD設計（タミヤパーツとの組み合わせを考慮）</li>
+        <li>組み立て・キャリブレーション</li>
+        <li>順運動学・逆運動学の実装</li>
+        <li>IMU＋PID制御の実装</li>
+      </ol>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- 3. トルク問題 -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2>トルク問題の整理</h2>
+    </div>
+
+    <div class="highlight-box">
+      ⚠ 片足立ち時が最大負荷。特に足首ピッチが最もトルクが必要な関節。
+    </div>
+
+    <div class="card">
+      <div class="card-title">トルク計算</div>
+      <div class="code-block">
+必要トルク = 重量[kg] × 重心〜足首間距離[cm]
+
+例：ロボット500g、脛長さ10cmの場合
+→ 0.5 × 10 = 5.0 kg·cm
+
+MG92Bのトルク = 3.0 kg·cm  →  足りない
+
+許容脛長さ（500g想定）= 3.0 ÷ 0.5 = 6.0 cm が限界
+上半身あり（700g想定）= 3.0 ÷ 0.7 = 4.3 cm が限界
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">対策の選択肢</div>
+      <table>
+        <thead>
+          <tr><th>対策</th><th>効果</th><th>デメリット</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>小型化（脛を短く）</td><td>トルクアーム短縮</td><td>サイズに物理的限界あり</td></tr>
+          <tr><td>低重心設計</td><td>重心を下げてトルク軽減</td><td>設計の制約が増える</td></tr>
+          <tr><td>足裏を大きくする</td><td>ZMP許容範囲が広がる</td><td>重量増加</td></tr>
+          <tr><td>並列リンク機構</td><td>トルク合算（2倍）</td><td>重量増・同期必須・設計複雑</td></tr>
+          <tr><td>サーボ換装</td><td>根本的解決</td><td>コスト増</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- 4. フィードバック戦略 -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2>フィードバック戦略</h2>
+    </div>
+
+    <div class="card">
+      <div class="card-title">ポテンショメータ改造（低コスト案）</div>
+      <ul class="styled">
+        <li>MG92B内部のポテンショメータのワイパーピンに線をはんだ付け</li>
+        <li>MCP3008（SPI ADC、8ch）でラズパイから角度を読む</li>
+        <li>10軸分にはMCP3008が2個必要（約800円）</li>
+        <li>角度→ADC値のキャリブレーションを各サーボで実施</li>
+        <li>GNDはサーボとマイコンで必ず統一する</li>
+      </ul>
+      <div class="code-block">
+# 2点キャリブレーション例
+ADC_0   = ???  # 実測値（0度時）
+ADC_180 = ???  # 実測値（180度時）
+
+def adc_to_angle(adc):
+    return (adc - ADC_0) / (ADC_180 - ADC_0) * 180.0
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">改造の注意点</div>
+      <ul class="styled">
+        <li>ワイパーピンは制御ICのADC入力に接続されているため高インピーダンス読み取りが必要</li>
+        <li>MCP3008は入力インピーダンスが高いので問題なし</li>
+        <li>VCC・GNDピンには触らない（制御回路に影響する）</li>
+        <li>180度改造と両立不可（ポテンショメータは物理的に180度まで）</li>
+        <li>まず1個で試してから全数展開する</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">フィードバックがあるだけで解決すること</div>
+      <ul class="styled">
+        <li>電源投入時の現在角度把握（0度リセット不要）</li>
+        <li>トルク負けで関節が動いていない状態を検出</li>
+        <li>逆運動学の計算結果を実機で検証可能</li>
+        <li>どの関節がトルク不足かデバッグで特定できる</li>
+        <li>PID制御の前段階として「見える化」だけでも価値がある</li>
+      </ul>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- 5. 理想設計 -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2>理想的な設計パラメータ</h2>
+    </div>
+
+    <div class="card">
+      <div class="card-title">リンク比</div>
+      <div class="code-block">
+腿 : 脛 : 足首高さ = 1 : 1 : 0.3
+足幅 = 腿長の 0.5〜0.7倍
+※脛と腿が同じ長さだと逆運動学がきれいに解ける
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">各関節の必要可動域と中立設定</div>
+      <table>
+        <thead>
+          <tr><th>関節</th><th>必要可動域</th><th>中立設定</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>股ピッチ</td><td>±45度</td><td>サーボ90度を0度に設定</td></tr>
+          <tr><td>股ロール</td><td>±20度</td><td>余裕でOK</td></tr>
+          <tr><td>膝</td><td>0〜90度</td><td>サーボ中立を取り付け角で調整</td></tr>
+          <tr><td>足首ピッチ</td><td>±45度</td><td>サーボ90度を0度に設定</td></tr>
+          <tr><td>足首ロール</td><td>±20度</td><td>余裕でOK</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- 6. 次回作業リスト -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2>次回作業リスト</h2>
+    </div>
+
+    <div class="card">
+      <ol class="steps">
+        <li>
+          <div>
+            <span class="priority p-high">最優先</span>
+            目標脛長さと全体重量を決定してMG92Bで成立するかトルク計算する
+          </div>
+        </li>
+        <li>
+          <div>
+            <span class="priority p-high">最優先</span>
+            MG92B 1個を分解してポテンショメータのワイパーピンを特定、テスターで電圧変化を確認する
+          </div>
+        </li>
+        <li>
+          <div>
+            <span class="priority p-mid">優先</span>
+            MCP3008とラズパイを接続してADC値の読み取りを確認する
+          </div>
+        </li>
+        <li>
+          <div>
+            <span class="priority p-mid">優先</span>
+            各リンク長を実測してCAD設計の基準値を確定する
+          </div>
+        </li>
+        <li>
+          <div>
+            <span class="priority p-mid">優先</span>
+            タミヤパーツとMG92Bのサイズを考慮した足ユニットの設計をCADで開始する
+          </div>
+        </li>
+        <li>
+          <div>
+            <span class="priority p-low">後回し可</span>
+            トルク計算でMG92Bが無理と判断した場合のサーボ再選定（Feetech等）
+          </div>
+        </li>
+        <li>
+          <div>
+            <span class="priority p-low">後回し可</span>
+            順運動学・逆運動学の実装（リンク長確定後）
+          </div>
+        </li>
+        <li>
+          <div>
+            <span class="priority p-low">後回し可</span>
+            IMU＋PID制御の実装（フレームが完成してから）
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- 7. 技術的メモ -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2>技術的メモ</h2>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">マイコン候補</div>
+        <ul class="styled">
+          <li><span class="tag tag-blue">現状</span> Raspberry Pi</li>
+          <li><span class="tag tag-green">候補</span> XIAO ESP32S3 Sense（ADC内蔵・IMU内蔵・小型）</li>
+          <li><span class="tag tag-green">候補</span> Arduino Nano（ADC内蔵・C++・安定）</li>
+          <li>ESP32のADCは非線形性あり、キャリブレーション必須</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title">3Dプリントの注意点</div>
+        <ul class="styled">
+          <li>層間剥離方向への力に弱い</li>
+          <li>プリント方向を力の向きに対して平行に設計</li>
+          <li>サーボホーン接続部は金属インサートナットを埋め込む</li>
+          <li>PETGやASAはPLAより粘り強い</li>
+          <li>関節部だけアルミ板も検討</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">ZMP（Zero Moment Point）の基本条件</div>
+      <div class="code-block">
+静的歩行の条件：
+　片足支持中 → 重心の真下が支持足の足裏内に収まること
+
+足裏が大きいほど許容できる重心のズレが増える
+→ 足裏はリンク長に対して大きめに設計する
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    BIPED ROBOT PROJECT &nbsp;//&nbsp; SESSION 01 REPORT &nbsp;//&nbsp; 2026.06.03
+  </footer>
+
+</div>
+</body>
+</html>
